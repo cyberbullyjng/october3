@@ -11,9 +11,7 @@ const BOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const HASH_FILE = join(BOT_DIR, "slash_hash.json");
 
 function getCommandsHash(): string {
-  const json = JSON.stringify(MOD_SLASH_COMMANDS.map((c: any) =>
-    typeof c.toJSON === "function" ? c.toJSON() : c
-  ));
+  const json = JSON.stringify(MOD_SLASH_COMMANDS);
   return createHash("sha256").update(json).digest("hex").slice(0, 16);
 }
 
@@ -25,12 +23,45 @@ function loadHashes(): Record<string, string> {
 }
 
 function saveHashes(hashes: Record<string, string>): void {
-  try {
-    writeFileSync(HASH_FILE, JSON.stringify(hashes, null, 2));
-  } catch {}
+  try { writeFileSync(HASH_FILE, JSON.stringify(hashes, null, 2)); } catch {}
 }
 
-// Throws on failure so callers can surface the error.
+/**
+ * Register slash commands globally (all guilds, ~1h first-time propagation).
+ * Pass force=true to skip the hash check and always push.
+ */
+export async function registerSlashCommandsGlobal(force = false): Promise<void> {
+  const currentHash = getCommandsHash();
+  const hashes = loadHashes();
+
+  if (!force && hashes["__global__"] === currentHash) {
+    console.log(`[slash] Global commands unchanged — skipping registration.`);
+    return;
+  }
+
+  console.log(`[slash] Registering ${MOD_SLASH_COMMANDS.length} commands globally...`);
+
+  const rest = new REST({ rejectOnRateLimit: () => true }).setToken(TOKEN!);
+
+  try {
+    await rest.put(Routes.applicationCommands(client.user!.id), {
+      body: MOD_SLASH_COMMANDS,
+    });
+    hashes["__global__"] = currentHash;
+    saveHashes(hashes);
+    console.log(`[slash] ✓ Registered ${MOD_SLASH_COMMANDS.length} global commands.`);
+  } catch (err: any) {
+    const code = err?.rawError?.code ?? err?.code ?? "unknown";
+    const discordMsg = err?.rawError?.message ?? err?.message ?? String(err);
+    console.error(`[slash] ✗ Global registration failed (code ${code}): ${discordMsg}`);
+    throw new Error(`${discordMsg} (code ${code})`);
+  }
+}
+
+/**
+ * Register slash commands for a single guild (instant, no propagation delay).
+ * Used by !reloadslash for a quick per-server refresh.
+ */
 export async function registerSlashCommands(guildId: string, force = false): Promise<void> {
   const currentHash = getCommandsHash();
   const hashes = loadHashes();
@@ -42,10 +73,7 @@ export async function registerSlashCommands(guildId: string, force = false): Pro
 
   console.log(`[slash] Registering ${MOD_SLASH_COMMANDS.length} commands in guild ${guildId}...`);
 
-  // rejectOnRateLimit: reject immediately instead of waiting hours on a daily-limit 429.
-  const rest = new REST({
-    rejectOnRateLimit: () => true,
-  }).setToken(TOKEN!);
+  const rest = new REST({ rejectOnRateLimit: () => true }).setToken(TOKEN!);
 
   try {
     await rest.put(Routes.applicationGuildCommands(client.user!.id, guildId), {
@@ -60,16 +88,14 @@ export async function registerSlashCommands(guildId: string, force = false): Pro
     const discordMsg = err?.rawError?.message ?? err?.message ?? String(err);
 
     if (code === 30034) {
-      // Daily application command create limit — don't retry, just log clearly.
       console.error(
         `[slash] ✗ Guild ${guildId} — daily command create limit (30034). ` +
         (retryAfterSec ? `Resets in ~${Math.ceil(retryAfterSec)}s. ` : "") +
-        `Use !reloadslash in that server once the limit clears.`
+        `Use !reloadslash once the limit clears.`
       );
       throw new Error(`Daily command create limit hit (error 30034). ${retryAfterSec ? `Retry in ~${Math.ceil(retryAfterSec)}s.` : "Try again tomorrow."}`);
     }
 
-    // RateLimitError (429) — rejected immediately due to rejectOnRateLimit
     if (err?.constructor?.name === "RateLimitError" || err?.status === 429) {
       const wait = retryAfterSec ?? err?.timeToReset ?? "unknown";
       console.error(`[slash] ✗ Guild ${guildId} — rate limited (retry_after ${wait}s). Use !reloadslash later.`);

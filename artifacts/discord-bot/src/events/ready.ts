@@ -6,7 +6,7 @@ import { gch, fetchMember, scheduleGiveaway, resolveGiveaway, syncRepRoles, refr
 import { cleanupVoiceMasterState } from "./voice-state.js";
 import { restoreBumpReminders } from "../commands/prefix/extras.js";
 import { startFeedPollers } from "../commands/prefix/feeds.js";
-import { registerSlashCommands } from "../commands/slash/register.js";
+import { registerSlashCommandsGlobal, registerSlashCommands } from "../commands/slash/register.js";
 import { handleSlashCommand } from "../commands/slash/handler.js";
 import { ensureYtDlp } from "../commands/prefix/music.js";
 import ffmpegStatic from "ffmpeg-static";
@@ -16,18 +16,22 @@ client.once(Events.ClientReady, async () => {
   console.log("[bot] ffmpeg path:", ffmpegStatic);
   ensureYtDlp().catch((e) => console.error("[music] yt-dlp prefetch failed:", e?.message));
 
-  console.log(`[bot] Ready as ${client.user!.tag} — registering slash commands...`);
-  const allGuilds = await client.guilds.fetch().catch(() => client.guilds.cache);
-  const guildIds = [...allGuilds.keys()];
-  console.log(`[bot] Found ${guildIds.length} guild(s): ${guildIds.join(", ")}`);
-  // Register sequentially with a 400 ms gap to avoid hitting Discord's
-  // per-bot global rate limit for application-command updates.
-  let ok = 0;
-  for (let i = 0; i < guildIds.length; i++) {
-    try { await registerSlashCommands(guildIds[i]); ok++; } catch {}
-    if (i < guildIds.length - 1) await new Promise(r => setTimeout(r, 400));
+  console.log(`[bot] Ready as ${client.user!.tag} — registering slash commands globally...`);
+  try {
+    await registerSlashCommandsGlobal();
+    console.log(`[bot] Global slash command registration complete.`);
+  } catch (err: any) {
+    console.error(`[bot] Global slash command registration failed:`, err?.message ?? err);
+    // Fallback: try per-guild registration for all known guilds
+    const allGuilds = await client.guilds.fetch().catch(() => client.guilds.cache);
+    const guildIds = [...allGuilds.keys()];
+    let ok = 0;
+    for (let i = 0; i < guildIds.length; i++) {
+      try { await registerSlashCommands(guildIds[i]); ok++; } catch {}
+      if (i < guildIds.length - 1) await new Promise(r => setTimeout(r, 400));
+    }
+    console.log(`[bot] Fallback guild registration: ${ok}/${guildIds.length} guild(s).`);
   }
-  console.log(`[bot] Slash commands checked in ${ok}/${guildIds.length} guild(s).`);
 
   let voiceMasterCleaned = 0;
   for (const guild of client.guilds.cache.values()) {
