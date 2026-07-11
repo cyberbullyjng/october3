@@ -4,7 +4,7 @@ import {
   CategoryChannel, Role, Collection,
 } from "discord.js";
 import type { Message } from "discord.js";
-import { OWNER_ID } from "../../constants.js";
+import { OWNER_ID, isOwner } from "../../constants.js";
 import {
   getGS, saveState, afkUsers, maintenanceMode, globalBannedUsers, blacklistedServers,
   snipeCache, editSnipeCache, reactionSnipeCache, msgStore, jailTimers, activeGiveawayTimers,
@@ -62,7 +62,7 @@ export async function handleRolesCommand(cmd: string, args: string[], message: M
         }
         const actor = await fetchMember(message.guild!, message.author.id).catch(() => null);
         const actorHighest = actor?.roles.highest.position ?? 0;
-        if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id) {
+        if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id && !isOwner(message.author.id)) {
           await safeReply(message, re("You can only mass-assign roles that are below your highest role."));
           return true;
         }
@@ -214,7 +214,7 @@ export async function handleRolesCommand(cmd: string, args: string[], message: M
         }
         const actor = await fetchMember(message.guild!, message.author.id).catch(() => null);
         const actorHighest = actor?.roles.highest.position ?? 0;
-        if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id) {
+        if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id && !isOwner(message.author.id)) {
           await safeReply(message, re("You can only delete roles that are below your highest role."));
           return true;
         }
@@ -257,7 +257,7 @@ export async function handleRolesCommand(cmd: string, args: string[], message: M
           }
           const actor = await fetchMember(message.guild!, message.author.id).catch(() => null);
           const actorHighest = actor?.roles.highest.position ?? 0;
-          if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id) {
+          if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id && !isOwner(message.author.id)) {
             await safeReply(message, re("You can only assign roles that are below your highest role."));
             return true;
           }
@@ -327,7 +327,7 @@ export async function handleRolesCommand(cmd: string, args: string[], message: M
           }
           const actor = await fetchMember(message.guild!, message.author.id).catch(() => null);
           const actorHighest = actor?.roles.highest.position ?? 0;
-          if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id) {
+          if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id && !isOwner(message.author.id)) {
             await safeReply(message, re("You can only assign roles that are below your highest role."));
             return true;
           }
@@ -384,7 +384,7 @@ export async function handleRolesCommand(cmd: string, args: string[], message: M
           // Role must be below the bot's highest role
           if (role.position >= botHighest) { skipped.push(`${role.name} (above bot)`); continue; }
           // Role must be below the actor's highest role
-          if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id) {
+          if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id && !isOwner(message.author.id)) {
             skipped.push(`${role.name} (above you)`); continue;
           }
           if (member.roles.cache.has(role.id)) {
@@ -482,7 +482,7 @@ export async function handleRolesCommand(cmd: string, args: string[], message: M
         if (role.position >= botHighest) { await safeReply(message, re("That role is at or above the bot's highest role — move the bot's role above it first.")); return true; }
         const actorMember = await fetchMember(message.guild!, message.author.id).catch(() => null);
         const actorHighest = actorMember?.roles.highest.position ?? 0;
-        if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id) { await safeReply(message, re("You can only assign roles that are below your highest role.")); return true; }
+        if (role.position >= actorHighest && message.guild!.ownerId !== message.author.id && !isOwner(message.author.id)) { await safeReply(message, re("You can only assign roles that are below your highest role.")); return true; }
         await member.roles.add(roleId);
         const expiresAt = Date.now() + ms;
         const existing = gs.tempRoles.get(userId) ?? [];

@@ -2841,8 +2841,8 @@ export async function handleSlashCommand(interaction: ChatInputCommandInteractio
         if (role.managed) { await interaction.editReply({ embeds: [ri(" That role is managed by an integration.")] }); return; }
         const botHighest = guild.members.me!.roles.highest.position;
         if (role.position >= botHighest) { await interaction.editReply({ embeds: [ri(" That role is above the bot's highest role.")] }); return; }
-        const actorHighest = actor.roles.highest.position;
-        if (role.position >= actorHighest && guild.ownerId !== actor.id) { await interaction.editReply({ embeds: [ri(" You can only assign roles below your highest role.")] }); return; }
+        const actorHighest = actorMember?.roles.highest.position ?? 0;
+        if (role.position >= actorHighest && guild.ownerId !== actor.id && !isOwner(actor.id)) { await interaction.editReply({ embeds: [ri(" You can only assign roles below your highest role.")] }); return; }
         const member = await fetchMember(guild, targetUser.id).catch(() => null);
         if (!member) { await interaction.editReply({ embeds: [ri(" Member not found.")] }); return; }
         await member.roles.add(role.id, auditReason("Temp role assigned", actor.tag));
