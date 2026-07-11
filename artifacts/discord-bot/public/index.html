@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>october — commands</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #000;
+    --surface: #0a0a0a;
+    --border: #1a1a1a;
+    --border-hover: #2a2a2a;
+    --text: #c8c8c8;
+    --text-dim: #555;
+    --text-bright: #e8e8e8;
+    --red: #cc2200;
+    --red-dim: #441100;
+    --mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 300;
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── Nav ─────────────────────────────────────────────── */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.95);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+  .nav-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+  .nav-logo {
+    color: var(--text-bright);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--red); }
+  .nav-links { display: flex; gap: 28px; margin-left: auto; }
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    transition: color 0.15s;
+  }
+  .nav-links a:hover, .nav-links a.active { color: var(--text-bright); }
+  .nav-links a.active { color: var(--red); }
+
+  /* ── Page ────────────────────────────────────────────── */
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 64px 24px 120px;
+  }
+
+  .page-header {
+    margin-bottom: 52px;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text-bright);
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .page-header h1 span { color: var(--red); }
+  .page-header p {
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Search ──────────────────────────────────────────── */
+  .search-wrap {
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .search-wrap::before {
+    content: '>';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--red);
+    font-size: 13px;
+    pointer-events: none;
+  }
+  #search {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-bright);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 300;
+    padding: 12px 16px 12px 32px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #search::placeholder { color: var(--text-dim); }
+  #search:focus { border-color: var(--red); }
+
+  /* ── Stats bar ───────────────────────────────────────── */
+  .stats {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-val { color: var(--red); font-size: 22px; font-weight: 500; }
+  .stat-label { color: var(--text-dim); font-size: 11px; letter-spacing: 0.06em; }
+
+  /* ── Filter tabs ─────────────────────────────────────── */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+  .filter-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
+  .filter-btn.active { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+  /* ── Category ────────────────────────────────────────── */
+  .category { margin-bottom: 48px; }
+  .category-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .category-name {
+    color: var(--text-bright);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .category-count {
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  /* ── Command row ─────────────────────────────────────── */
+  .cmd {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 9px 0;
+    border-bottom: 1px solid transparent;
+    transition: all 0.12s;
+  }
+  .cmd:hover { border-bottom-color: var(--border); }
+  .cmd:hover .cmd-name { color: var(--red); }
+  .cmd-name {
+    color: var(--text-bright);
+    font-weight: 400;
+    min-width: 190px;
+    flex-shrink: 0;
+    font-size: 12.5px;
+    transition: color 0.12s;
+  }
+  .cmd-name::before { content: '!'; color: var(--red); margin-right: 1px; }
+  .cmd-desc {
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* ── No results ──────────────────────────────────────── */
+  #no-results {
+    display: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 48px 0;
+    text-align: center;
+  }
+  #no-results span { color: var(--red); }
+
+  /* ── Scrollbar ───────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #222; }
+  ::-webkit-scrollbar-thumb:hover { background: #333; }
+
+  /* ── Mobile ──────────────────────────────────────────── */
+  @media (max-width: 600px) {
+    .cmd { flex-direction: column; gap: 4px; }
+    .cmd-name { min-width: unset; }
+    .stats { gap: 20px; }
+    .stat-val { font-size: 18px; }
+    .page { padding: 40px 16px 80px; }
+    .nav-inner { gap: 20px; padding: 0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="/">octo<span>ber</span></a>
+    <div class="nav-links">
+      <a href="/">home</a>
+      <a href="/commands" class="active">commands</a>
+      <a href="https://discord.gg/october" target="_blank">support</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1>command<span>s</span></h1>
+    <p>default prefix: <span style="color:#cc2200">!</span> &nbsp;·&nbsp; all commands are case-insensitive</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="total-count">0</div><div class="stat-label">commands</div></div>
+    <div class="stat"><div class="stat-val" id="cat-count">0</div><div class="stat-label">categories</div></div>
+  </div>
+
+  <div class="search-wrap">
+    <input id="search" type="text" placeholder="search commands..." autocomplete="off" spellcheck="false">
+  </div>
+
+  <div class="filters" id="filters">
+    <button class="filter-btn active" data-cat="all">all</button>
+  </div>
+
+  <div id="cmd-list"></div>
+  <div id="no-results">no results for &ldquo;<span id="search-term"></span>&rdquo;</div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {
+    name: "Moderation — Bans",
+    cmds: [
+      ["ban",        "Ban a member with an optional reason and DM notification"],
+      ["tempban",    "Temporarily ban a member for a given duration"],
+      ["softban",    "Ban then immediately unban to delete recent messages"],
+      ["hackban",    "Ban a user by ID without them being in the server"],
+      ["hardban",    "Permanently ban — blocks rejoining via hardban list"],
+      ["massban",    "Ban multiple members by ID in one command"],
+      ["unban",      "Unban a previously banned user"],
+      ["unbanall",   "Remove all bans from the server"],
+      ["banlist",    "List all current bans with reasons"],
+      ["hardbans",   "List all hardbanned user IDs"],
+    ]
+  },
+  {
+    name: "Moderation — Members",
+    cmds: [
+      ["kick",          "Kick a member with an optional reason"],
+      ["warn",          "Issue a formal warning to a member"],
+      ["warnings",      "View all warnings for a member"],
+      ["clearwarns",    "Clear all warnings for a member"],
+      ["warnthreshold", "Set kick/ban thresholds for warnings"],
+      ["warnlb",        "Warning count leaderboard for the server"],
+      ["history",       "View moderation history for a member"],
+      ["case",          "Look up a specific moderation case by ID"],
+      ["clearhistory",  "Clear a member's full moderation history"],
+      ["note",          "Add a private staff note to a member"],
+      ["notes",         "View all staff notes for a member"],
+      ["clearnotes",    "Delete all notes for a member"],
+      ["modstats",      "View moderation statistics for a staff member"],
+      ["stripstaff",    "Strip all roles from a staff member"],
+      ["restorestaff",  "Restore previously stripped roles to a member"],
+      ["striphumans",   "Strip all roles from every non-bot member"],
+      ["dehoist",       "Remove hoisting characters from member nicknames"],
+      ["voicekick",     "Disconnect a member from voice"],
+      ["forcenick",     "Force a permanent nickname on a member"],
+      ["unforcenick",   "Remove a forced nickname"],
+      ["listforcenicks","List all active forced nicknames"],
+    ]
+  },
+  {
+    name: "Moderation — Channels",
+    cmds: [
+      ["purge",        "Bulk-delete messages in a channel"],
+      ["lock",         "Prevent members from sending messages in a channel"],
+      ["unlock",       "Re-enable messaging in a locked channel"],
+      ["lockdown",     "Lock all channels in the server at once"],
+      ["unlockdown",   "Unlock all channels after a lockdown"],
+      ["imagelock",    "Restrict a channel to images and videos only"],
+      ["imageunlock",  "Remove image-only restriction from a channel"],
+      ["nuke",         "Clone a channel and delete the original to wipe history"],
+      ["schedulenuke", "Schedule a channel nuke for a future time"],
+      ["cleanup",      "Delete bot messages in a channel"],
+      ["pin",          "Pin a specific message by ID"],
+      ["unpin",        "Unpin a specific message by ID"],
+      ["clearpins",    "Remove all pinned messages from a channel"],
+      ["slowmode",     "Set a slowmode delay on a channel"],
+      ["slowmodelist", "List all active slowmodes in the server"],
+      ["slowall",      "Apply a slowmode delay to every text channel"],
+    ]
+  },
+  {
+    name: "Moderation — Mutes & Timeouts",
+    cmds: [
+      ["mute",        "Timeout a member for a given duration"],
+      ["unmute",      "Remove a timeout from a member"],
+      ["imute",       "Revoke a member's image posting permissions"],
+      ["iunmute",     "Restore image permissions to a member"],
+      ["rmute",       "Revoke a member's reaction permissions"],
+      ["runmute",     "Restore reaction permissions to a member"],
+      ["untimeoutall","Remove all active timeouts in the server"],
+      ["massunmute",  "Remove all muted roles from every member"],
+      ["mutelist",    "List all currently muted members"],
+      ["voicemute",   "Server-mute a member in voice"],
+      ["voiceunmute", "Remove server-mute from a voice member"],
+      ["voicedeaf",   "Server-deafen a member in voice"],
+      ["voiceundeaf", "Remove server-deafen from a voice member"],
+      ["setupmute",   "Set up or auto-create the muted role"],
+    ]
+  },
+  {
+    name: "Antinuke / Security",
+    cmds: [
+      ["antinuke",          "Enable/disable and configure antinuke protection"],
+      ["whitelist",         "Add a user to the antinuke whitelist"],
+      ["unwhitelist",       "Remove a user from the antinuke whitelist"],
+      ["botwl",             "Whitelist a bot from antinuke checks"],
+      ["antinukeadmin",     "Grant/revoke antinuke admin access"],
+      ["permguard",         "Enable permission guard on admin/dangerous roles"],
+      ["permguardwhitelist","Whitelist a user from permission guard checks"],
+      ["stripall",          "Strip dangerous permissions from all roles"],
+      ["restoreperms",      "Restore permissions from the last snapshot"],
+      ["antiinvite",        "Block invite links in messages"],
+      ["filter",            "Configure the word/link/content filter"],
+      ["filterbypass",      "Allow a member to bypass the word filter"],
+      ["linkbypass",        "Allow a member to bypass the link filter"],
+      ["spambypass",        "Allow a member to bypass antispam"],
+      ["antispam",          "Configure automatic antispam detection"],
+      ["antiraid",          "Set the action taken on detected raid members"],
+      ["raidprotect",       "Enable/disable join raid protection"],
+      ["banraiders",        "Retroactively ban detected raid members"],
+      ["agegate",           "Block newly-created accounts from joining"],
+      ["antialt",           "Block accounts younger than a set age"],
+      ["lockserver",        "Set server verification to the highest level"],
+      ["unlockserver",      "Restore the server's previous verification level"],
+      ["imageonly",         "Restrict a channel to images only"],
+      ["imageban",          "Prevent a member from posting images"],
+      ["imageunban",        "Restore a member's image posting permissions"],
+      ["streamban",         "Ban a member from streaming/camera in VCs"],
+      ["streamunban",       "Remove a member's streaming ban"],
+      ["capslockfilter",    "Auto-delete messages that are mostly caps"],
+      ["sblacklist",        "Manage the staff blacklist"],
+    ]
+  },
+  {
+    name: "Voice / VoiceMaster",
+    cmds: [
+      ["move",       "Move a member to a different voice channel"],
+      ["moveall",    "Move all members from one VC to another"],
+      ["vclock",     "Set a user limit on a voice channel"],
+      ["vc lock",    "Lock your VoiceMaster channel"],
+      ["vc unlock",  "Unlock your VoiceMaster channel"],
+      ["vc hide",    "Hide your VC from non-allowlisted members"],
+      ["vc unhide",  "Make your VC visible again"],
+      ["vc kick",    "Remove a member from your VC"],
+      ["vc allow",   "Add a member to your VC allowlist"],
+      ["vc reject",  "Block a member from your VC"],
+      ["vc rename",  "Rename your VoiceMaster channel"],
+      ["vc limit",   "Set a member limit on your VC"],
+      ["vc claim",   "Claim ownership of an empty VC"],
+      ["vc info",    "Show info about the current VC"],
+    ]
+  },
+  {
+    name: "Roles",
+    cmds: [
+      ["massrole",    "Add or remove a role from every member"],
+      ["role",        "Add or remove a role from a specific member"],
+      ["temprole",    "Give a member a role that expires automatically"],
+      ["temproles",   "List all active temporary roles"],
+      ["rolemention", "Temporarily make a role mentionable, ping it, then revert"],
+      ["nick",        "Change a member's nickname"],
+      ["resetnick",   "Reset a member's nickname to their username"],
+      ["massnick",    "Set the same nickname on every member"],
+    ]
+  },
+  {
+    name: "Config / Setup",
+    cmds: [
+      ["autorole",       "Set a role given to all new members"],
+      ["welcome",        "Configure the welcome message and channel"],
+      ["goodbye",        "Configure the goodbye message and channel"],
+      ["boostmsg",       "Configure the server boost announcement"],
+      ["modlog",         "Set the moderation log channel"],
+      ["reactionrole",   "Create an emoji → role reaction menu"],
+      ["buttonrole",     "Create a button-based role menu"],
+      ["boosterrole",    "Configure booster custom role perks"],
+      ["ticketsetup",    "Set up the ticket system for a category"],
+      ["ticket",         "Create a support ticket"],
+      ["closeticket",    "Close and archive a ticket"],
+      ["autostaff",      "Configure automatic role promotion by activity"],
+      ["starboard",      "Configure the starboard channel and threshold"],
+      ["clownboard",     "Configure the clownboard for 🤡-reacted messages"],
+      ["counting",       "Set up the counting channel"],
+      ["level",          "Configure the XP/leveling system"],
+      ["rank",           "Show your or another member's XP rank"],
+      ["backup",         "Create, load, or manage server backups"],
+      ["alias",          "Create a custom command alias"],
+      ["editrole",       "Edit a role's name, color, or permissions"],
+      ["emoji",          "Add, remove, or rename an emoji"],
+      ["stealemoji",     "Copy an emoji from another server"],
+      ["reportchannel",  "Set the channel for member reports"],
+      ["report",         "Submit a report about a member"],
+      ["thread",         "Create or manage threads"],
+      ["suggest",        "Submit a suggestion"],
+      ["autoresponder",  "Set up automatic keyword responses"],
+      ["counter",        "Configure a member/boost/channel counter"],
+      ["bumpreminder",   "Enable/disable Disboard bump reminders"],
+      ["disablecommand", "Disable a command globally or in a channel"],
+      ["enablecommand",  "Re-enable a disabled command"],
+      ["disabledcommands","List all disabled commands"],
+      ["tag",            "Create, show, or delete a custom tag/command"],
+      ["tags",           "List all server tags"],
+      ["webhook",        "Send a message via webhook"],
+      ["sticky",         "Pin a sticky message that reposts on each message"],
+      ["unsticky",       "Remove a sticky message"],
+      ["settings",       "View all current server settings"],
+      ["serversetup",    "Interactive full server configuration wizard"],
+      ["setuprules",     "Auto-post formatted server rules"],
+      ["enableevent",    "Enable a specific log event"],
+      ["disableevent",   "Disable a specific log event"],
+      ["strip",          "Remove a role from a member and remember it"],
+      ["unstrip",        "Restore a previously stripped role"],
+      ["fakepermissions","Show commands a member can use via role overrides"],
+      ["uwulock",        "Force a member to speak in uwu dialect"],
+      ["uwuunlock",      "Remove the uwulock from a member"],
+      ["uwulist",        "List all currently uwulocked members"],
+      ["pingonjoin",     "Ping new members in a channel when they join"],
+      ["boosterdm",      "DM new boosters with a custom message"],
+      ["antieveryoneping","Auto-delete or punish @everyone/@here abuse"],
+      ["leavedm",        "DM members with a custom message when they leave"],
+      ["birthday",       "Set your birthday for automated announcements"],
+    ]
+  },
+  {
+    name: "Info",
+    cmds: [
+      ["serverinfo",   "Display detailed server information"],
+      ["userinfo",     "Display detailed info about a member"],
+      ["roleinfo",     "Show info about a specific role"],
+      ["channelinfo",  "Show info about a specific channel"],
+      ["permissions",  "List a member's effective permissions"],
+      ["roleperms",    "Show what permissions a role has"],
+      ["invites",      "Show invite stats for a member"],
+      ["avatar",       "Show a member's avatar"],
+      ["banner",       "Show a member's profile banner"],
+      ["serveravatar",  "Show the server's icon"],
+      ["serverbanner",  "Show the server's banner"],
+      ["membercount",  "Display total/bot/human member counts"],
+      ["roles",        "List all roles and their member counts"],
+      ["inrole",       "List all members with a specific role"],
+      ["emojis",       "List all custom emojis in the server"],
+      ["bots",         "List all bots in the server"],
+      ["sticker",      "Show info or preview a server sticker"],
+      ["oldest",       "Show the oldest members in the server"],
+      ["newest",       "Show the newest members to join"],
+      ["randomuser",   "Pick a random member from the server"],
+      ["lookup",       "Look up any Discord user by ID"],
+      ["id",           "Show the ID of a member, role, or channel"],
+      ["audit",        "Show recent audit log entries"],
+    ]
+  },
+  {
+    name: "Utility",
+    cmds: [
+      ["prefix",      "Change the bot's command prefix"],
+      ["setup",       "Configure core bot channels quickly"],
+      ["help",        "Show command help"],
+      ["ping",        "Check the bot's latency"],
+      ["uptime",      "Show how long the bot has been online"],
+      ["say",         "Make the bot send a message"],
+      ["dm",          "Send a DM to a member"],
+      ["announce",    "Post a formatted announcement embed"],
+      ["embed",       "Build and send a custom embed"],
+      ["snipe",       "Show the last deleted message in a channel"],
+      ["esnipe",      "Show the last edited message in a channel"],
+      ["rsnipe",      "Show the last removed reaction"],
+      ["imagesnipe",  "Show the last deleted image"],
+      ["videosnipe",  "Show the last deleted video"],
+      ["clearsnipe",  "Clear the snipe cache for this channel"],
+      ["afk",         "Set your AFK status and message"],
+      ["afklist",     "List all currently AFK members"],
+      ["timezone",    "Set your timezone for time commands"],
+      ["reminder",    "Set a reminder for later"],
+      ["remindme",    "Alias for reminder"],
+      ["vanity",      "Show vanity URL analytics"],
+      ["ts",          "Convert a time string to a Discord timestamp"],
+      ["color",       "Preview and get info about a hex color"],
+      ["firstmsg",    "Jump to the first message in a channel"],
+      ["search",      "Search message history for a keyword"],
+      ["calc",        "Evaluate a math expression"],
+      ["weather",     "Get current weather for a location"],
+      ["define",      "Look up a dictionary definition"],
+      ["urban",       "Search Urban Dictionary"],
+      ["qrcode",      "Generate a QR code from text or a URL"],
+      ["shortlink",   "Shorten a URL"],
+      ["copyembed",   "Duplicate an embed from another message"],
+      ["botinvite",   "Get the bot's invite link"],
+      ["translate",   "Translate text to another language"],
+    ]
+  },
+  {
+    name: "Music",
+    cmds: [
+      ["play",       "Play a song or playlist from a URL or search query"],
+      ["pause",      "Pause the current track"],
+      ["resume",     "Resume a paused track"],
+      ["skip",       "Skip to the next track in the queue"],
+      ["stop",       "Stop playback and clear the queue"],
+      ["queue",      "Show the current playback queue"],
+      ["nowplaying", "Show info about the currently playing track"],
+      ["volume",     "Set the playback volume (0–200)"],
+      ["loop",       "Toggle looping for the current track or queue"],
+      ["shuffle",    "Shuffle the current queue"],
+      ["remove",     "Remove a specific track from the queue"],
+      ["seek",       "Jump to a specific timestamp in the current track"],
+      ["lyrics",     "Fetch lyrics for the current or a named track"],
+      ["tts",        "Speak text in a voice channel via TTS"],
+      ["247",        "Toggle 24/7 mode — stay in VC after queue ends"],
+      ["disconnect", "Disconnect the bot from the voice channel"],
+    ]
+  },
+  {
+    name: "Fun / Social",
+    cmds: [
+      ["poll",       "Create a multi-option poll"],
+      ["giveaway",   "Start a timed giveaway"],
+      ["gend",       "End a giveaway early"],
+      ["greroll",    "Reroll the winner of a giveaway"],
+      ["blacktea",   "Start a word-chain party game"],
+      ["trivia",     "Start a trivia question game"],
+      ["wordle",     "Play Wordle in Discord"],
+      ["ttt",        "Play tic-tac-toe against another member"],
+      ["rps",        "Rock-paper-scissors against the bot"],
+      ["ship",       "Calculate a ship compatibility score"],
+      ["flip",       "Flip a coin"],
+      ["roll",       "Roll a dice (supports NdN notation)"],
+      ["pick",       "Pick a random option from a list"],
+      ["quote",      "Show or save a quoted message"],
+      ["repping",    "Give someone a reputation point"],
+      ["togglerep",  "Enable or disable the rep system"],
+      ["iq",         "\"Measure\" someone's IQ"],
+      ["pp",         "Totally scientific measurement"],
+      ["rizz",       "Rate someone's rizz"],
+      ["sus",        "Rate someone's sus level"],
+      ["roast",      "Generate a roast"],
+      ["compliment", "Generate a compliment"],
+      ["mock",       "Convert text to mOcKiNg CaSe"],
+      ["reverse",    "Reverse a string"],
+      ["ratio",      "Send a ratio reply"],
+      ["fact",       "Get a random fact"],
+      ["joke",       "Get a random joke"],
+      ["would",      "Would you rather..."],
+      ["truth",      "Generate a truth question"],
+      ["dare",       "Generate a dare"],
+      ["google",     "Google something (shows a fake result)"],
+      ["roblox",     "Look up a Roblox user's profile"],
+      ["dog",        "Get a random dog image"],
+      ["cat",        "Get a random cat image"],
+      ["hug",        "Send a hug GIF"],
+      ["kiss",       "Send a kiss GIF"],
+      ["pat",        "Send a headpat GIF"],
+      ["cuddle",     "Send a cuddle GIF"],
+      ["slap",       "Send a slap GIF"],
+      ["punch",      "Send a punch GIF"],
+      ["poke",       "Send a poke GIF"],
+      ["wave",       "Send a wave GIF"],
+      ["bite",       "Send a bite GIF"],
+      ["bonk",       "Send a bonk GIF"],
+      ["yeet",       "Yeet someone into the void"],
+      ["dance",      "Send a dance GIF"],
+      ["smile",      "Send a smile GIF"],
+      ["cry",        "Send a cry GIF"],
+    ]
+  },
+  {
+    name: "Last.fm",
+    cmds: [
+      ["lastfm",         "Show your currently playing / recently scrobbled track"],
+      ["lastfm set",     "Link your Last.fm account"],
+      ["lastfm unset",   "Unlink your Last.fm account"],
+      ["lastfm artist",  "Get info about an artist from Last.fm"],
+      ["lastfm recent",  "Show your recent scrobble history"],
+      ["lastfm lb",      "Last.fm scrobble leaderboard for the server"],
+    ]
+  },
+];
+
+const listEl   = document.getElementById("cmd-list");
+const searchEl = document.getElementById("search");
+const filtersEl = document.getElementById("filters");
+const noRes    = document.getElementById("no-results");
+const stTerm   = document.getElementById("search-term");
+const totalEl  = document.getElementById("total-count");
+const catEl    = document.getElementById("cat-count");
+
+let activeFilter = "all";
+
+let totalCmds = 0;
+CATEGORIES.forEach(c => { totalCmds += c.cmds.length; });
+totalEl.textContent = totalCmds;
+catEl.textContent = CATEGORIES.length;
+
+CATEGORIES.forEach(cat => {
+  const btn = document.createElement("button");
+  btn.className = "filter-btn";
+  btn.dataset.cat = cat.name;
+  btn.textContent = cat.name.split("—")[0].trim().toLowerCase();
+  filtersEl.appendChild(btn);
+});
+
+function buildList(query) {
+  query = (query || "").toLowerCase().trim();
+  listEl.innerHTML = "";
+  let anyVisible = false;
+
+  CATEGORIES.forEach(cat => {
+    const filtered = cat.cmds.filter(([name, desc]) => {
+      const matchSearch = !query || name.toLowerCase().includes(query) || desc.toLowerCase().includes(query);
+      const matchFilter = activeFilter === "all" || activeFilter === cat.name;
+      return matchSearch && matchFilter;
+    });
+
+    if (filtered.length === 0) return;
+    anyVisible = true;
+
+    const catDiv = document.createElement("div");
+    catDiv.className = "category";
+    catDiv.dataset.cat = cat.name;
+
+    const hdr = document.createElement("div");
+    hdr.className = "category-header";
+    hdr.innerHTML = `<span class="category-name">${cat.name}</span><span class="category-count">${filtered.length} command${filtered.length !== 1 ? "s" : ""}</span>`;
+    catDiv.appendChild(hdr);
+
+    filtered.forEach(([name, desc]) => {
+      const row = document.createElement("div");
+      row.className = "cmd";
+      row.innerHTML = `<span class="cmd-name">${name}</span><span class="cmd-desc">${desc}</span>`;
+      catDiv.appendChild(row);
+    });
+
+    listEl.appendChild(catDiv);
+  });
+
+  if (!anyVisible) {
+    noRes.style.display = "block";
+    stTerm.textContent = query;
+  } else {
+    noRes.style.display = "none";
+  }
+}
+
+searchEl.addEventListener("input", () => buildList(searchEl.value));
+
+filtersEl.addEventListener("click", e => {
+  const btn = e.target.closest(".filter-btn");
+  if (!btn) return;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  activeFilter = btn.dataset.cat;
+  buildList(searchEl.value);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+buildList("");
+</script>
+</body>
+</html>
