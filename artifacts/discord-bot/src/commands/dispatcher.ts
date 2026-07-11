@@ -1,7 +1,7 @@
 import { Message, PermissionFlagsBits } from "discord.js";
 import client from "../client.js";
 import { getGS } from "../state.js";
-import { gch, fetchMember, re } from "../utils.js";
+import { fetchMember, re } from "../utils.js";
 import { CMD_PERMS, BUILTIN_ALIASES, PERM_NAMES, DMALL_ALLOWED_IDS, isOwner } from "../constants.js";
 import { handleModerationCommand } from "./prefix/moderation.js";
 import { handleAntinukeCommand } from "./prefix/antinuke.js";
@@ -23,10 +23,6 @@ export async function handleCommand(message: Message, skipPermCheck = false): Pr
   const gs = getGS(guild.id);
   const content = message.content.trim();
   if (!content.startsWith(gs.prefix)) return false;
-  const jailedRole = gs.jailRoleId ? guild.roles.cache.get(gs.jailRoleId) ?? null : null;
-  const jailChannel = gch(guild, gs.jailChannelId);
-  const dmLogChannel = gch(guild, gs.dmLogChannelId);
-
   const parts = content.slice(gs.prefix.length).split(" ");
   const rawCommand = parts[0].toLowerCase();
 

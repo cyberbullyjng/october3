@@ -201,7 +201,8 @@ async function playNext(guildId: string, _depth = 0): Promise<void> {
     const resource = await createYtdlResource(next.url, ms.volume);
     ms.player.play(resource);
 
-    const textCh = gch(client.guilds.cache.get(guildId)!, ms.textChannelId);
+    const guild = client.guilds.cache.get(guildId);
+    const textCh = guild ? gch(guild, ms.textChannelId) : null;
     if (textCh) {
       await (textCh as TextChannel).send({
         embeds: [
@@ -222,7 +223,8 @@ async function playNext(guildId: string, _depth = 0): Promise<void> {
   } catch (err: any) {
     const errMsg: string = err?.stderr ?? err?.message ?? String(err);
     console.error(`[music] playNext error for "${next.title}":`, errMsg);
-    const textCh = gch(client.guilds.cache.get(guildId)!, ms.textChannelId);
+    const guild = client.guilds.cache.get(guildId);
+    const textCh = guild ? gch(guild, ms.textChannelId) : null;
     if (textCh) {
       await (textCh as TextChannel).send(re(`Failed to play **${next.title}**: \`${errMsg.replace(/\n/g, " ").slice(0, 200)}\``)).catch(() => {});
     }

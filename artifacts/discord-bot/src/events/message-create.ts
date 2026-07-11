@@ -107,7 +107,7 @@ client.on(Events.MessageCreate, async (message) => {
                       mins > 0 ? `${mins} minute${mins !== 1 ? "s" : ""}` :
                                  `${secs} second${secs !== 1 ? "s" : ""}`;
       const notice = await safeReply(message, { embeds: [new EmbedBuilder().setColor(COLORS.primary).setDescription(`👋 ${message.author}: Welcome back, you went away ${awayStr}`)] });
-      setTimeout(() => notice.delete().catch(() => {}), 5000);
+      if (notice) setTimeout(() => notice.delete().catch(() => {}), 5000);
     }
   }
 

@@ -239,10 +239,13 @@ client.on(Events.ChannelDelete, async (channel) => {
 
   // ── Welcome channel recovery ─────────────────────────────────────────────
   if (gsC.welcomeChannelId && channel.id === gsC.welcomeChannelId) {
+    const deletedChannelId = channel.id;
     const oldName = (channel as { name?: string }).name ?? "welcome";
     const oldParentId = (channel as { parentId?: string | null }).parentId ?? null;
     setTimeout(async () => {
       try {
+        // Guard: another event may have already updated welcomeChannelId
+        if (gsC.welcomeChannelId !== deletedChannelId) return;
         const existing = guild.channels.cache.find(
           c => c.type === ChannelType.GuildText && c.name === oldName && (c as TextChannel).parentId === oldParentId
         ) as TextChannel | undefined;
@@ -257,6 +260,11 @@ client.on(Events.ChannelDelete, async (channel) => {
             ...(oldParentId ? { parent: oldParentId } : {}),
             reason: "Welcome channel was deleted — auto-recreated by bot",
           }) as TextChannel;
+          // Check again after the async create to avoid double-creation
+          if (gsC.welcomeChannelId !== deletedChannelId) {
+            await newCh.delete().catch(() => {});
+            return;
+          }
           gsC.welcomeChannelId = newCh.id;
           saveState();
           console.log(`[welcome] Recreated welcome channel #${newCh.name} in ${guild.name}`);
