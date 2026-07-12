@@ -492,20 +492,27 @@ export async function handleInfoCommand(cmd: string, args: string[], message: Me
     }
     case "serverbanner": {
       try {
-        const guild = await message.guild!.fetch();
-        const bannerUrl = guild.bannerURL({ size: 4096, extension: "png" });
+        const member = await resolveMemberTarget(message, args);
+        if (!member) {
+          await safeReply(message, re("Couldn't find that member. Try mentioning them or using their user ID."));
+          return true;
+        }
+        // Fetch member to get up-to-date profile data including per-guild banner
+        const fetched = await member.fetch(true).catch(() => member);
+        const bannerUrl = fetched.displayBannerURL({ size: 4096, extension: "png", forceStatic: false });
         if (!bannerUrl) {
-          await safeReply(message, re("This server has no banner set."));
+          await safeReply(message, re("That user has no server-specific banner set."));
           return true;
         }
         const embed = new EmbedBuilder()
           .setColor(COLORS.primary)
-          .setTitle(`${guild.name}'s Banner`)
+          .setTitle(`${fetched.user.tag}'s Server Banner`)
           .setImage(bannerUrl)
           .setDescription(`[Open in browser](${bannerUrl})`);
         await safeReply(message, { embeds: [embed] });
-      } catch {
-        await safeReply(message, re("Couldn't fetch the server banner."));
+      } catch (err) {
+        console.error("[serverbanner] command failed:", err);
+        await safeReply(message, re("Couldn't fetch that member's server banner."));
       }
       return true;
     }
