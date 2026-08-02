@@ -1,4 +1,344 @@
-// ─────────────────────────────────────────────────────────────────────────────
+Build a full-stack web application called **Control Panel** for managing and monitoring my Discord bot.
+
+
+
+Requirements:
+
+
+
+### Core Features
+
+
+
+#### Dashboard
+
+
+
+* Modern dark-themed responsive UI.
+
+* Overview cards showing:
+
+
+
+  * Total servers
+
+  * Total users
+
+  * Commands used today
+
+  * Commands used this week
+
+  * Blacklisted users count
+
+  * Blacklisted servers count
+
+  * Bot uptime
+
+  * Bot latency/ping
+
+* Live activity feed showing recent commands executed.
+
+
+
+#### Command Tracking
+
+
+
+* Log every command execution.
+
+* Store:
+
+
+
+  * Username
+
+  * User ID
+
+  * Server Name
+
+  * Server ID
+
+  * Command Name
+
+  * Timestamp
+
+  * Success/Failure status
+
+* Search and filter by:
+
+
+
+  * User
+
+  * Server
+
+  * Command
+
+  * Date range
+
+* Export logs to CSV.
+
+
+
+#### Blacklist Management
+
+
+
+* Blacklisted Users page.
+
+* Blacklisted Servers page.
+
+* Add, remove, and edit blacklist entries.
+
+* Store:
+
+
+
+  * ID
+
+  * Reason
+
+  * Date added
+
+  * Added by
+
+* Search and filter functionality.
+
+
+
+#### Bot Statistics
+
+
+
+* Command usage analytics.
+
+* Most used commands.
+
+* Least used commands.
+
+* Daily, weekly, and monthly charts.
+
+* Server growth chart.
+
+* User growth chart.
+
+
+
+#### Server Management
+
+
+
+* List all servers the bot is in.
+
+* Show:
+
+
+
+  * Server Name
+
+  * Server ID
+
+  * Member Count
+
+  * Join Date
+
+* Search and sort servers.
+
+
+
+#### User Management
+
+
+
+* View users interacting with the bot.
+
+* Show:
+
+
+
+  * Username
+
+  * User ID
+
+  * Commands Used
+
+  * Last Seen
+
+* User profile page with activity history.
+
+
+
+#### Settings
+
+
+
+* Admin login system.
+
+* Secure authentication with JWT and password hashing.
+
+* Role-based permissions.
+
+* API key management page.
+
+* Audit logs for all admin actions.
+
+
+
+### Backend
+
+
+
+* Node.js + Express.
+
+* PostgreSQL database.
+
+* Prisma ORM.
+
+* REST API architecture.
+
+* Environment variable support.
+
+* Proper validation and error handling.
+
+
+
+### Discord Bot Integration
+
+
+
+Create API endpoints so my Discord bot can send:
+
+
+
+* Command logs
+
+* Server join/leave events
+
+* User activity
+
+* Blacklist updates
+
+* Bot status information
+
+
+
+Example endpoints:
+
+
+
+* POST /api/logs
+
+* POST /api/stats
+
+* POST /api/blacklist
+
+* POST /api/status
+
+
+
+Use API key authentication between the bot and dashboard.
+
+
+
+### Frontend
+
+
+
+* React + TypeScript.
+
+* Tailwind CSS.
+
+* Charts using Chart.js or Recharts.
+
+* Sidebar navigation.
+
+* Mobile responsive design.
+
+* Data tables with pagination, filtering, and sorting.
+
+
+
+### Database Models
+
+
+
+Create tables for:
+
+
+
+* Users
+
+* Servers
+
+* Commands
+
+* CommandLogs
+
+* BlacklistedUsers
+
+* BlacklistedServers
+
+* AdminUsers
+
+* AuditLogs
+
+* BotStatus
+
+
+
+### Extra Features
+
+
+
+* Real-time updates using WebSockets.
+
+* Notification center.
+
+* System health monitoring.
+
+* Backup and restore database functionality.
+
+* Dark/light mode toggle.
+
+* Activity timeline.
+
+* Error tracking page.
+
+
+
+### Security
+
+
+
+* Rate limiting.
+
+* Helmet security headers.
+
+* CSRF protection.
+
+* Input sanitization.
+
+* Secure session handling.
+
+
+
+### Deliverables
+
+
+
+* Fully functional application.
+
+* Clean folder structure.
+
+* Installation instructions.
+
+* Sample environment file.
+
+* Seed data.
+
+* Production-ready code.
+
+* Attractive professional UI similar to modern SaaS dashboards.// ─────────────────────────────────────────────────────────────────────────────
 // Filter List — Discord TOS-violating content ONLY.
 // Basic swearing (fuck, shit, bitch, ass, damn, etc.) is intentionally allowed.
 // This list targets content that can get a server terminated.

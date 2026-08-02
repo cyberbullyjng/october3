@@ -3,20 +3,38 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Control Panel API for Discord bot management
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard overview and live feed
+  - name: command-logs
+    description: Command execution logs
+  - name: blacklist
+    description: Blacklisted users and servers
+  - name: stats
+    description: Bot usage analytics
+  - name: servers
+    description: Server management
+  - name: users
+    description: User management
+  - name: admin
+    description: Admin authentication and settings
+  - name: audit
+    description: Audit logs
+  - name: bot
+    description: Bot status and ingestion endpoints
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +42,937 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Dashboard ──────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Overview stats cards
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/feed:
+    get:
+      operationId: getLiveFeed
+      tags: [dashboard]
+      summary: Recent command activity feed
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: Live feed entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommandLog"
+
+  # ─── Command Logs ───────────────────────────────────────────────────────────
+  /command-logs:
+    get:
+      operationId: listCommandLogs
+      tags: [command-logs]
+      summary: List command logs with search and filter
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: userId
+          in: query
+          schema: { type: string }
+        - name: serverId
+          in: query
+          schema: { type: string }
+        - name: command
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { type: string, enum: [success, failure] }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Paginated command logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandLogPage"
+
+    post:
+      operationId: createCommandLog
+      tags: [command-logs]
+      summary: Ingest a command log from the bot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandLogInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandLog"
+
+  /command-logs/export:
+    get:
+      operationId: exportCommandLogs
+      tags: [command-logs]
+      summary: Export command logs as CSV
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: query
+          schema: { type: string }
+        - name: serverId
+          in: query
+          schema: { type: string }
+        - name: command
+          in: query
+          schema: { type: string }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # ─── Blacklist ──────────────────────────────────────────────────────────────
+  /blacklist/users:
+    get:
+      operationId: listBlacklistedUsers
+      tags: [blacklist]
+      summary: List blacklisted users
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Paginated blacklisted users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlacklistedUserPage"
+
+    post:
+      operationId: blacklistUser
+      tags: [blacklist]
+      summary: Add a user to the blacklist
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlacklistUserInput"
+      responses:
+        "201":
+          description: Blacklisted user created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlacklistedUser"
+
+  /blacklist/users/{id}:
+    patch:
+      operationId: updateBlacklistedUser
+      tags: [blacklist]
+      summary: Update blacklist reason
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlacklistUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlacklistedUser"
+
+    delete:
+      operationId: unblacklistUser
+      tags: [blacklist]
+      summary: Remove a user from the blacklist
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Removed
+
+  /blacklist/servers:
+    get:
+      operationId: listBlacklistedServers
+      tags: [blacklist]
+      summary: List blacklisted servers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Paginated blacklisted servers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlacklistedServerPage"
+
+    post:
+      operationId: blacklistServer
+      tags: [blacklist]
+      summary: Add a server to the blacklist
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlacklistServerInput"
+      responses:
+        "201":
+          description: Blacklisted server created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlacklistedServer"
+
+  /blacklist/servers/{id}:
+    patch:
+      operationId: updateBlacklistedServer
+      tags: [blacklist]
+      summary: Update server blacklist reason
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlacklistUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlacklistedServer"
+
+    delete:
+      operationId: unblacklistServer
+      tags: [blacklist]
+      summary: Remove a server from the blacklist
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Removed
+
+  # ─── Stats ──────────────────────────────────────────────────────────────────
+  /stats/commands:
+    get:
+      operationId: getCommandStats
+      tags: [stats]
+      summary: Command usage analytics (top/least used, daily/weekly/monthly)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [daily, weekly, monthly], default: daily }
+      responses:
+        "200":
+          description: Command statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandStats"
+
+  /stats/growth:
+    get:
+      operationId: getGrowthStats
+      tags: [stats]
+      summary: Server and user growth over time
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [daily, weekly, monthly], default: daily }
+      responses:
+        "200":
+          description: Growth statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrowthStats"
+
+  # ─── Servers ─────────────────────────────────────────────────────────────────
+  /servers:
+    get:
+      operationId: listServers
+      tags: [servers]
+      summary: List all servers the bot is in
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: sortBy
+          in: query
+          schema: { type: string, enum: [name, memberCount, joinedAt], default: joinedAt }
+        - name: order
+          in: query
+          schema: { type: string, enum: [asc, desc], default: desc }
+      responses:
+        "200":
+          description: Paginated servers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerPage"
+
+  /servers/{serverId}:
+    get:
+      operationId: getServer
+      tags: [servers]
+      summary: Get a single server
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Server detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Server"
+
+  # ─── Users ───────────────────────────────────────────────────────────────────
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List users who have interacted with the bot
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+        - name: search
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Paginated users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotUserPage"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user profile with activity history
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotUserDetail"
+
+  # ─── Admin / Auth ────────────────────────────────────────────────────────────
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login — returns JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      tags: [admin]
+      summary: Get current admin user
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Admin user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  /admin/api-keys:
+    get:
+      operationId: listApiKeys
+      tags: [admin]
+      summary: List API keys
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: API keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiKey"
+
+    post:
+      operationId: createApiKey
+      tags: [admin]
+      summary: Create a new API key
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiKeyInput"
+      responses:
+        "201":
+          description: Created API key (secret shown once)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyCreated"
+
+  /admin/api-keys/{id}:
+    delete:
+      operationId: deleteApiKey
+      tags: [admin]
+      summary: Revoke an API key
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Revoked
+
+  # ─── Audit Logs ──────────────────────────────────────────────────────────────
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [audit]
+      summary: List admin audit logs
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        "200":
+          description: Paginated audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogPage"
+
+  # ─── Bot ingestion / status ──────────────────────────────────────────────────
+  /bot/status:
+    post:
+      operationId: postBotStatus
+      tags: [bot]
+      summary: Bot pushes its live status (uptime, latency, guild count)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotStatusInput"
+      responses:
+        "200":
+          description: Accepted
+
+    get:
+      operationId: getBotStatus
+      tags: [bot]
+      summary: Get latest bot status
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Latest bot status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStatus"
+
+  /bot/server-event:
+    post:
+      operationId: postServerEvent
+      tags: [bot]
+      summary: Bot pushes server join/leave events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServerEventInput"
+      responses:
+        "200":
+          description: Accepted
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    # ── Dashboard ──────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required:
+        - totalServers
+        - totalUsers
+        - commandsToday
+        - commandsThisWeek
+        - blacklistedUsers
+        - blacklistedServers
+        - uptime
+        - latency
+      properties:
+        totalServers: { type: integer }
+        totalUsers: { type: integer }
+        commandsToday: { type: integer }
+        commandsThisWeek: { type: integer }
+        blacklistedUsers: { type: integer }
+        blacklistedServers: { type: integer }
+        uptime: { type: integer, description: "Uptime in seconds" }
+        latency: { type: integer, description: "Bot latency in ms" }
+
+    # ── Command Logs ───────────────────────────────────────────────────────────
+    CommandLog:
+      type: object
+      required:
+        - id
+        - username
+        - userId
+        - serverName
+        - serverId
+        - command
+        - status
+        - timestamp
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        userId: { type: string }
+        serverName: { type: string }
+        serverId: { type: string }
+        command: { type: string }
+        status: { type: string, enum: [success, failure] }
+        timestamp: { type: string, format: date-time }
+        errorMessage: { type: ["string", "null"] }
+
+    CommandLogInput:
+      type: object
+      required: [username, userId, serverName, serverId, command, status, timestamp]
+      properties:
+        username: { type: string }
+        userId: { type: string }
+        serverName: { type: string }
+        serverId: { type: string }
+        command: { type: string }
+        status: { type: string, enum: [success, failure] }
+        timestamp: { type: string, format: date-time }
+        errorMessage: { type: string }
+
+    CommandLogPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandLog"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    # ── Blacklist ──────────────────────────────────────────────────────────────
+    BlacklistedUser:
+      type: object
+      required: [id, discordId, username, reason, addedBy, addedAt]
+      properties:
+        id: { type: integer }
+        discordId: { type: string }
+        username: { type: string }
+        reason: { type: string }
+        addedBy: { type: string }
+        addedAt: { type: string, format: date-time }
+
+    BlacklistUserInput:
+      type: object
+      required: [discordId, username, reason]
+      properties:
+        discordId: { type: string }
+        username: { type: string }
+        reason: { type: string }
+
+    BlacklistServerInput:
+      type: object
+      required: [discordId, serverName, reason]
+      properties:
+        discordId: { type: string }
+        serverName: { type: string }
+        reason: { type: string }
+
+    BlacklistUpdate:
+      type: object
+      properties:
+        reason: { type: string }
+
+    BlacklistedUserPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlacklistedUser"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    BlacklistedServer:
+      type: object
+      required: [id, discordId, serverName, reason, addedBy, addedAt]
+      properties:
+        id: { type: integer }
+        discordId: { type: string }
+        serverName: { type: string }
+        reason: { type: string }
+        addedBy: { type: string }
+        addedAt: { type: string, format: date-time }
+
+    BlacklistedServerPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BlacklistedServer"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    # ── Stats ──────────────────────────────────────────────────────────────────
+    CommandStats:
+      type: object
+      required: [topCommands, leastUsedCommands, chartData]
+      properties:
+        topCommands:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandUsageStat"
+        leastUsedCommands:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandUsageStat"
+        chartData:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+
+    CommandUsageStat:
+      type: object
+      required: [command, count]
+      properties:
+        command: { type: string }
+        count: { type: integer }
+
+    ChartDataPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: integer }
+
+    GrowthStats:
+      type: object
+      required: [serverGrowth, userGrowth]
+      properties:
+        serverGrowth:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+        userGrowth:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartDataPoint"
+
+    # ── Servers ────────────────────────────────────────────────────────────────
+    Server:
+      type: object
+      required: [id, discordId, name, memberCount, joinedAt]
+      properties:
+        id: { type: integer }
+        discordId: { type: string }
+        name: { type: string }
+        memberCount: { type: integer }
+        joinedAt: { type: string, format: date-time }
+        iconUrl: { type: ["string", "null"] }
+
+    ServerPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Server"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    ServerEventInput:
+      type: object
+      required: [type, discordId, name, memberCount]
+      properties:
+        type: { type: string, enum: [join, leave] }
+        discordId: { type: string }
+        name: { type: string }
+        memberCount: { type: integer }
+        iconUrl: { type: string }
+
+    # ── Users ──────────────────────────────────────────────────────────────────
+    BotUser:
+      type: object
+      required: [id, discordId, username, commandsUsed, lastSeen]
+      properties:
+        id: { type: integer }
+        discordId: { type: string }
+        username: { type: string }
+        commandsUsed: { type: integer }
+        lastSeen: { type: string, format: date-time }
+        avatarUrl: { type: ["string", "null"] }
+
+    BotUserPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BotUser"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    BotUserDetail:
+      type: object
+      required: [user, recentActivity]
+      properties:
+        user:
+          $ref: "#/components/schemas/BotUser"
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/CommandLog"
+
+    # ── Admin ──────────────────────────────────────────────────────────────────
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    LoginResponse:
+      type: object
+      required: [token, admin]
+      properties:
+        token: { type: string }
+        admin:
+          $ref: "#/components/schemas/AdminUser"
+
+    AdminUser:
+      type: object
+      required: [id, username, role]
+      properties:
+        id: { type: integer }
+        username: { type: string }
+        role: { type: string, enum: [superadmin, admin, viewer] }
+
+    ApiKey:
+      type: object
+      required: [id, name, prefix, createdAt, lastUsedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        prefix: { type: string }
+        createdAt: { type: string, format: date-time }
+        lastUsedAt: { type: ["string", "null"] }
+
+    ApiKeyInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+
+    ApiKeyCreated:
+      type: object
+      required: [id, name, prefix, key, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        prefix: { type: string }
+        key: { type: string, description: "Full key — shown once only" }
+        createdAt: { type: string, format: date-time }
+
+    # ── Audit Logs ─────────────────────────────────────────────────────────────
+    AuditLog:
+      type: object
+      required: [id, adminId, action, target, createdAt]
+      properties:
+        id: { type: integer }
+        adminId: { type: integer }
+        adminUsername: { type: string }
+        action: { type: string }
+        target: { type: string }
+        detail: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+
+    AuditLogPage:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    # ── Bot Status ─────────────────────────────────────────────────────────────
+    BotStatus:
+      type: object
+      required: [id, uptime, latency, guildCount, userCount, updatedAt]
+      properties:
+        id: { type: integer }
+        uptime: { type: integer }
+        latency: { type: integer }
+        guildCount: { type: integer }
+        userCount: { type: integer }
+        updatedAt: { type: string, format: date-time }
+
+    BotStatusInput:
+      type: object
+      required: [uptime, latency, guildCount, userCount]
+      properties:
+        uptime: { type: integer }
+        latency: { type: integer }
+        guildCount: { type: integer }
+        userCount: { type: integer }
